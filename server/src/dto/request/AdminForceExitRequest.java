@@ -3,8 +3,8 @@ package dto.request;
 import dto.type.DtoType;
 
 public class AdminForceExitRequest extends DTO {
-    private String userId;
-    private String roomName;
+    private final String userId;
+    private final String roomName;
 
     public AdminForceExitRequest(String userId, String roomName) {
         super(DtoType.ADMIN_FORCE_EXIT);

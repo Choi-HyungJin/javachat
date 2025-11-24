@@ -3,8 +3,8 @@ package dto.request;
 import dto.type.DtoType;
 
 public class AdminBanRequest extends DTO {
-    private String userId;
-    private boolean banned;
+    private final String userId;
+    private final boolean banned;
 
     public AdminBanRequest(String userId, boolean banned) {
         super(DtoType.ADMIN_BAN);
@@ -12,7 +12,7 @@ public class AdminBanRequest extends DTO {
         this.banned = banned;
     }
 
-    public AdminBanRequest(String message, boolean parse) {
+    public AdminBanRequest(String message) {
         super(DtoType.ADMIN_BAN);
         String[] parts = message.split(",", 2);
         this.userId = parts.length > 0 ? parts[0] : "";

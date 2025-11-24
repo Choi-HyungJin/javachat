@@ -6,11 +6,9 @@ import domain.ChatRoom;
 import domain.User;
 import dto.request.*;
 import dto.response.*;
+import dto.response.DTO;
 import dto.type.DtoType;
 import dto.type.MessageType;
-import service.ChatService;
-import service.FriendOperationResult;
-
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
@@ -23,8 +21,9 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-
 import javax.imageio.ImageIO;
+import service.ChatService;
+import service.FriendOperationResult;
 
 public class ServerThread extends Thread {
 

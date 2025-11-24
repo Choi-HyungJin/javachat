@@ -5,18 +5,16 @@ import domain.ChatRoom;
 import dto.request.EnterChatRequest;
 import dto.response.*;
 import dto.type.DtoType;
-import view.frame.ChatFrame;
-import view.frame.LobbyFrame;
-import view.panel.ChatPanel;
-import view.panel.ChatRoomUserListPanel;
-import dto.response.ProfileUpdateResponse;
-
-import javax.swing.JOptionPane;
-import javax.swing.SwingUtilities;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Socket;
+import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
+import view.frame.ChatFrame;
+import view.frame.LobbyFrame;
+import view.panel.ChatPanel;
+import view.panel.ChatRoomUserListPanel;
 
 public class MessageReceiver extends Thread {
 
@@ -135,10 +133,6 @@ public class MessageReceiver extends Thread {
                         LobbyFrame.chatRoomListPanel.paintChatRoomList();
                     }
                 });
-                break;
-                    }
-                }
-
                 if (LobbyFrame.chatRoomListPanel != null) {
                     LobbyFrame.chatRoomListPanel.paintChatRoomList();
                 }
@@ -211,7 +205,7 @@ public class MessageReceiver extends Thread {
                 break;
 
             case FORCE_EXIT:
-                String[] exitParts = message.split("\|", 2);
+                String[] exitParts = message.split("\\|", 2);
                 String forcedRoom = exitParts.length > 0 ? exitParts[0] : "";
                 String reason = exitParts.length > 1 ? exitParts[1] : "????? ???????.";
                 closeChatRoom(forcedRoom, reason);
@@ -323,7 +317,8 @@ public class MessageReceiver extends Thread {
             default:
                 System.out.println("[WARNING] 처리할 수 없는 메시지 타입 " + type);
                 break;
-        }
+            }
+        
     }
 
     private void closeChatRoom(String roomName, String reason) {
