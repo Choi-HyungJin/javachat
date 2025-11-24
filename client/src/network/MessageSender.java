@@ -45,6 +45,9 @@ public class MessageSender {
                 case FRIEND_CHAT_START:
                     writer.println((FriendChatStartRequest) dto);
                     break;
+                case PROFILE_UPDATE:
+                    writer.println((ProfileUpdateRequest) dto);
+                    break;
                 default:
                     writer.println(dto);
             }

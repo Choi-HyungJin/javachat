@@ -9,6 +9,7 @@ import view.frame.ChatFrame;
 import view.frame.LobbyFrame;
 import view.panel.ChatPanel;
 import view.panel.ChatRoomUserListPanel;
+import dto.response.ProfileUpdateResponse;
 
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
@@ -127,7 +128,7 @@ public class MessageReceiver extends Thread {
                     Application.chatRooms.add(newChatRoom);
                     System.out.println("[CREATE_CHAT] 새 채팅방 추가: " + chatRoomName);
                     if (LobbyFrame.chatRoomListPanel != null) {
-                        LobbyFrame.chatRoomListPanel.addChatRoomLabel(chatRoomName);
+                        LobbyFrame.chatRoomListPanel.addChatRoom(chatRoomName);
                     }
                 }
                 break;
@@ -188,11 +189,25 @@ public class MessageReceiver extends Thread {
                 );
                 break;
 
+            case PROFILE_UPDATE_RESULT:
+                ProfileUpdateResponse profileRes = new ProfileUpdateResponse(message);
+                if (profileRes.isSuccess() && Application.me != null) {
+                    Application.me.setNickName(profileRes.getNickname());
+                }
+                SwingUtilities.invokeLater(() ->
+                        JOptionPane.showMessageDialog(null, profileRes.getMessage(),
+                                profileRes.isSuccess() ? "알림" : "오류",
+                                profileRes.isSuccess() ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.ERROR_MESSAGE));
+                break;
+
             case FRIEND_CHAT_INVITE:
                 FriendChatInviteResponse inviteRes = new FriendChatInviteResponse(message);
                 if (Application.me != null) {
                     if (Application.chatRooms.stream().noneMatch(r -> r.getName().equals(inviteRes.getRoomName()))) {
                         Application.chatRooms.add(new ChatRoom(inviteRes.getRoomName()));
+                        if (LobbyFrame.chatRoomListPanel != null) {
+                            LobbyFrame.chatRoomListPanel.addChatRoom(inviteRes.getRoomName());
+                        }
                     }
                     if (!Application.chatPanelMap.containsKey(inviteRes.getRoomName())) {
                         ChatFrame chatFrame = new ChatFrame(inviteRes.getRoomName());

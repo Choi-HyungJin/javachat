@@ -4,6 +4,7 @@ import dao.ChatDao;
 import domain.ChatRoom;
 import domain.User;
 import dto.request.JoinRequest;
+import service.FriendOperationResult;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -280,6 +281,27 @@ public class ChatService {
 
     public String findUserIdByNickname(String nickname) {
         return chatDao.findUserIdByNickname(nickname);
+    }
+
+    public FriendOperationResult updateNickname(String userId, String newNickname) {
+        try {
+            String ownerId = chatDao.findUserIdByNickname(newNickname);
+            if (ownerId != null && !ownerId.equals(userId)) {
+                return new FriendOperationResult(false, "이미 사용 중인 닉네임입니다.");
+            }
+            boolean ok = chatDao.updateNickname(userId, newNickname);
+            if (ok) {
+                // 메모리 사용자 객체 닉네임 업데이트
+                User me = chatDao.getUser(userId).orElse(null);
+                if (me != null) {
+                    me.setNickName(newNickname);
+                }
+                return new FriendOperationResult(true, "닉네임을 변경했습니다.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new FriendOperationResult(false, "닉네임 변경에 실패했습니다.");
     }
 
     public void saveChatMessage(String roomName, String userNickname, String content) {

@@ -12,79 +12,81 @@ import java.awt.event.MouseEvent;
 
 public class ChatRoomListPanel extends JPanel {
 
-    JPanel labelPanel = new JPanel();
+    private final DefaultListModel<ChatRoom> roomModel = new DefaultListModel<>();
+    private final JList<ChatRoom> roomList = new JList<>(roomModel);
 
-    JLabel label = new JLabel("채팅방 목록 (채팅방 이름 클릭 시 채팅방으로 이동)");
+    public ChatRoomListPanel() {
+        setLayout(new BorderLayout(10, 10));
+        setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-    public ChatRoomListPanel(JFrame frame) {
-        setLayout(null);
+        JLabel title = new JLabel("채팅방 목록");
+        add(title, BorderLayout.NORTH);
 
-        label.setBounds(0, 0, 400, 50);
-        add(label);
+        roomList.setCellRenderer(new ChatRoomRenderer());
+        roomList.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int index = roomList.locationToIndex(e.getPoint());
+                if (index >= 0 && e.getClickCount() == 2) {
+                    ChatRoom room = roomModel.getElementAt(index);
+                    enterRoom(room.getName());
+                }
+            }
+        });
 
-        labelPanel.setSize(400, 200);
-        labelPanel.setLayout(new GridLayout(30, 1));
-
-        JScrollPane scrPane = new JScrollPane(labelPanel);
-        scrPane.setBounds(0, 50, 400, 200);
-        add(scrPane);
-
-        frame.add(this);
-
-        setBounds(410, 210, 400, 250);
+        add(new JScrollPane(roomList), BorderLayout.CENTER);
     }
 
     public void paintChatRoomList() {
-        labelPanel.removeAll();
-
+        roomModel.clear();
         for (ChatRoom chatRoom : Application.chatRooms) {
-            JLabel label = new JLabel(chatRoom.getName());
-            label.addMouseListener(new ChatRoomMouseAdapter(chatRoom.getName()));
-            labelPanel.add(label);
+            if (!Application.LOBBY_CHAT_NAME.equals(chatRoom.getName())) {
+                roomModel.addElement(chatRoom);
+            }
         }
-
-        labelPanel.revalidate();
-        labelPanel.repaint();
     }
 
-    public void addChatRoomLabel(String chatRoomName) {
-        JLabel label = new JLabel(chatRoomName);
-        label.addMouseListener(new ChatRoomMouseAdapter(chatRoomName));
-        labelPanel.add(label);
-
-        labelPanel.revalidate();
-        labelPanel.repaint();
+    public void addChatRoom(String chatRoomName) {
+        if (Application.LOBBY_CHAT_NAME.equals(chatRoomName)) {
+            return;
+        }
+        boolean exists = false;
+        for (int i = 0; i < roomModel.size(); i++) {
+            if (roomModel.get(i).getName().equals(chatRoomName)) {
+                exists = true;
+                break;
+            }
+        }
+        if (!exists) {
+            roomModel.addElement(new ChatRoom(chatRoomName));
+        }
     }
 
-    // 채팅방 레이블을 누르면, 해당 채팅방 접속
-    class ChatRoomMouseAdapter extends MouseAdapter {
-
-        String chatRoomName;
-
-        public ChatRoomMouseAdapter(String chatRoomName) {
-            this.chatRoomName = chatRoomName;
+    private void enterRoom(String chatRoomName) {
+        if (Application.me == null || Application.me.getId() == null) {
+            JOptionPane.showMessageDialog(null, "로그인이 필요합니다.", "알림", JOptionPane.WARNING_MESSAGE);
+            return;
         }
 
+        if (Application.chatPanelMap.containsKey(chatRoomName)) {
+            JOptionPane.showMessageDialog(null, "이미 열려있는 채팅방입니다.", "Message", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        ChatFrame chatFrame = new ChatFrame(chatRoomName);
+        Application.chatPanelMap.put(chatRoomName, chatFrame.getChatPanel());
+        Application.chatRoomUserListPanelMap.put(chatRoomName, chatFrame.getChatRoomUserListPanel());
+        Application.sender.sendMessage(new EnterChatRequest(chatRoomName, Application.me.getId()));
+    }
+
+    private static class ChatRoomRenderer extends DefaultListCellRenderer {
         @Override
-        public void mouseClicked(MouseEvent e) {
-            // 로그인 확인
-            if (Application.me == null || Application.me.getId() == null) {
-                JOptionPane.showMessageDialog(null,
-                        "로그인이 필요합니다.", "알림", JOptionPane.WARNING_MESSAGE);
-                return;
+        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            if (value instanceof ChatRoom) {
+                setText(((ChatRoom) value).getName());
             }
-            
-            if (Application.chatPanelMap.containsKey(chatRoomName)) {
-                JOptionPane.showMessageDialog(null,
-                        "이미 열려있는 채팅방입니다.", "Message", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            ChatFrame chatFrame = new ChatFrame(chatRoomName);
-            Application.chatPanelMap.put(chatRoomName, chatFrame.getChatPanel()); // 채팅방 화면 관리
-            Application.chatRoomUserListPanelMap.put(chatRoomName, chatFrame.getChatRoomUserListPanel()); // 채팅방 사용자 리스트 관리
-
-            Application.sender.sendMessage(new EnterChatRequest(chatRoomName, Application.me.getId()));
+            return this;
         }
     }
 }

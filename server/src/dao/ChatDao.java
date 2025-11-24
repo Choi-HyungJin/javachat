@@ -179,7 +179,7 @@ public class ChatDao {
             ResultSet rs = pstmt.executeQuery();
             
             while (rs.next()) {
-                messages.add(0, new ChatMessage(
+                messages.add(new ChatMessage(
                     rs.getString("nickname"),
                     rs.getString("content"),
                     rs.getString("sent_time")
@@ -300,6 +300,18 @@ public class ChatDao {
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, userId);
             pstmt.setString(2, friendId);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean updateNickname(String userId, String newNickname) {
+        String sql = "UPDATE users SET nickname = ? WHERE user_id = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, newNickname);
+            pstmt.setString(2, userId);
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();

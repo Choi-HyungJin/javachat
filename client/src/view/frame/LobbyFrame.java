@@ -1,25 +1,18 @@
 package view.frame;
 
 import app.Application;
-import view.panel.ChatPanel;
 import view.panel.ChatRoomListPanel;
 import view.panel.FriendListPanel;
-import view.panel.MenuPanel;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 
 public class LobbyFrame extends JFrame implements WindowListener {
 
-    public static ChatPanel chatPanel;
-
     public static ChatRoomListPanel chatRoomListPanel;
-
-    public static MenuPanel menuPanel;
-
     public static FriendListPanel friendListPanel;
-
     public static CreateChatFrame createChatFrame;
 
     public LobbyFrame() {
@@ -28,23 +21,28 @@ public class LobbyFrame extends JFrame implements WindowListener {
         new LoginFrame(this);
         createChatFrame = new CreateChatFrame();
 
-        setLayout(null);
-        setSize(830, 550);
+        setLayout(new BorderLayout());
+        setSize(520, 500);
 
-        chatPanel = new ChatPanel(this, Application.LOBBY_CHAT_NAME);
-        friendListPanel = new FriendListPanel(this);
-        chatRoomListPanel = new ChatRoomListPanel(this);
-        menuPanel = new MenuPanel(this, Application.LOBBY_CHAT_NAME);
-        menuPanel.setCreateChatBtnVisible(true);
-        menuPanel.setCloseBtnVisible(true);
+        friendListPanel = new FriendListPanel();
+        chatRoomListPanel = new ChatRoomListPanel();
 
-        this.addWindowListener(this);
+        JPanel chatTab = new JPanel(new BorderLayout());
+        JButton createChatBtn = new JButton("채팅방 만들기");
+        createChatBtn.addActionListener(e -> createChatFrame.setVisible(true));
+        JPanel topBar = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        topBar.add(createChatBtn);
+        chatTab.add(topBar, BorderLayout.NORTH);
+        chatTab.add(chatRoomListPanel, BorderLayout.CENTER);
+
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.addTab("친구", friendListPanel);
+        tabs.addTab("채팅방", chatTab);
+
+        add(tabs, BorderLayout.CENTER);
+        addWindowListener(this);
 
         setVisible(false);
-    }
-
-    public ChatPanel getChatPanel() {
-        return chatPanel;
     }
 
     @Override

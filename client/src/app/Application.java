@@ -48,7 +48,6 @@ public class Application {
             receiver.start();
 
             lobbyFrame = new LobbyFrame();
-            chatPanelMap.put(LOBBY_CHAT_NAME, lobbyFrame.getChatPanel());
 
         } catch (Exception e) {
             e.printStackTrace();

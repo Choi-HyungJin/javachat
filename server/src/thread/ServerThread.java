@@ -1,15 +1,13 @@
 package thread;
 
 import app.ServerApplication;
+import dao.ChatDao;
 import domain.ChatRoom;
 import domain.User;
 import dto.request.*;
 import dto.response.*;
 import dto.type.DtoType;
 import dto.type.MessageType;
-import exception.ChatRoomExistException;
-import exception.ChatRoomNotFoundException;
-import exception.UserNotFoundException;
 import service.ChatService;
 import service.FriendOperationResult;
 
@@ -22,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,9 +28,8 @@ import javax.imageio.ImageIO;
 
 public class ServerThread extends Thread {
 
-    Socket socket;
-
-    ChatService chatService;
+    private final Socket socket;
+    private final ChatService chatService;
 
     public ServerThread(Socket socket, ChatService chatService) {
         this.socket = socket;
@@ -40,8 +38,6 @@ public class ServerThread extends Thread {
 
     @Override
     public void run() {
-        super.run();
-
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
@@ -77,8 +73,7 @@ public class ServerThread extends Thread {
         }
     }
 
-    private void processReceiveMessage(DtoType type, String message)
-            throws UserNotFoundException, ChatRoomNotFoundException, ChatRoomExistException, IOException {
+    private void processReceiveMessage(DtoType type, String message) throws IOException {
         switch (type) {
 
         case LOGIN:
@@ -149,8 +144,7 @@ public class ServerThread extends Thread {
                     dis.readFully(imageBytes);
 
                     File dir = new File("profile_images");
-                    if (!dir.exists())
-                        dir.mkdirs();
+                    if (!dir.exists()) dir.mkdirs();
 
                     String fileName = UUID.randomUUID() + ".jpg";
                     File file = new File(dir, fileName);
@@ -199,7 +193,7 @@ public class ServerThread extends Thread {
 
             User requestUser = chatService.getUser(enterReq.getUserId());
             if (requestUser == null) {
-                System.out.println("[ENTER_CHAT] 로그인하지 않은 사용자: " + enterReq.getUserId());
+                System.out.println("[ENTER_CHAT] 로그인하지 않은 사용자 " + enterReq.getUserId());
                 sendResponse("ENTER_FAIL:로그인이 필요합니다");
                 break;
             }
@@ -220,6 +214,15 @@ public class ServerThread extends Thread {
             List<User> users = chatService.getChatRoomUsers(enterReq.getChatRoomName());
             UserListResponse enterUserList = new UserListResponse(enterReq.getChatRoomName(), users);
             broadcastToRoom(enterReq.getChatRoomName(), enterUserList);
+
+            if (!"Lobby".equals(enterReq.getChatRoomName())) {
+                List<ChatDao.ChatMessage> history = chatService.loadChatMessages(enterReq.getChatRoomName());
+                List<ChatHistoryResponse.HistoryEntry> entries = new ArrayList<>();
+                for (ChatDao.ChatMessage msg : history) {
+                    entries.add(new ChatHistoryResponse.HistoryEntry(msg.getNickname(), msg.getSentAt(), msg.getContent()));
+                }
+                sendMessage(new ChatHistoryResponse(enterReq.getChatRoomName(), entries));
+            }
 
             System.out.println("[ENTER_CHAT] 입장 완료 - 현재 인원: " + users.size() + " (신규: " + isNewEntry + ")");
             break;
@@ -330,6 +333,16 @@ public class ServerThread extends Thread {
             }
             break;
 
+        case PROFILE_UPDATE:
+            ProfileUpdateRequest profileReq = new ProfileUpdateRequest(message);
+            FriendOperationResult profileResult = chatService.updateNickname(profileReq.getUserId(), profileReq.getNickname());
+            sendMessage(new ProfileUpdateResponse(profileResult.isSuccess(), profileResult.getMessage(), profileReq.getNickname()));
+            if (profileResult.isSuccess()) {
+                UserListResponse refreshed = new UserListResponse("Lobby", chatService.getUsers());
+                broadcastToAll(refreshed);
+            }
+            break;
+
         case USER_LIST:
         case CHAT_ROOM_LIST:
             System.out.println("아직 구현되지 않은 기능: " + type);
@@ -385,8 +398,8 @@ public class ServerThread extends Thread {
             }
 
             List<User> roomUsers = room.getUsers();
-            for (User user : roomUsers) {
-                Socket userSocket = user.getSocket();
+            for (User u : roomUsers) {
+                Socket userSocket = u.getSocket();
                 if (userSocket != null && !userSocket.isClosed()) {
                     PrintWriter sender = new PrintWriter(userSocket.getOutputStream());
                     sender.println(dto);
