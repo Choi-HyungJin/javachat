@@ -17,11 +17,16 @@ public class ChatRoomListPanel extends JPanel {
 
     public ChatRoomListPanel() {
         setLayout(new BorderLayout(10, 10));
-        setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        setBackground(Color.WHITE);
 
-        JLabel title = new JLabel("채팅방 목록");
+        JLabel title = new JLabel("채팅방");
+        title.setFont(new Font("맑은 고딕", Font.BOLD, 18));
         add(title, BorderLayout.NORTH);
 
+        roomList.setBorder(BorderFactory.createEmptyBorder());
+        roomList.setBackground(Color.WHITE);
+        roomList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         roomList.setCellRenderer(new ChatRoomRenderer());
         roomList.addMouseListener(new MouseAdapter() {
             @Override
@@ -34,7 +39,9 @@ public class ChatRoomListPanel extends JPanel {
             }
         });
 
-        add(new JScrollPane(roomList), BorderLayout.CENTER);
+        JScrollPane scroll = new JScrollPane(roomList);
+        scroll.setBorder(BorderFactory.createLineBorder(new Color(235, 235, 235)));
+        add(scroll, BorderLayout.CENTER);
     }
 
     public void paintChatRoomList() {
@@ -79,12 +86,23 @@ public class ChatRoomListPanel extends JPanel {
         Application.sender.sendMessage(new EnterChatRequest(chatRoomName, Application.me.getId()));
     }
 
-    private static class ChatRoomRenderer extends DefaultListCellRenderer {
+    private static class ChatRoomRenderer extends JPanel implements ListCellRenderer<ChatRoom> {
+        private final JLabel name = new JLabel();
+
+        ChatRoomRenderer() {
+            setLayout(new BorderLayout());
+            setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+            name.setFont(new Font("맑은 고딕", Font.PLAIN, 14));
+            add(name, BorderLayout.CENTER);
+        }
+
         @Override
-        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-            super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-            if (value instanceof ChatRoom) {
-                setText(((ChatRoom) value).getName());
+        public Component getListCellRendererComponent(JList<? extends ChatRoom> list, ChatRoom value, int index, boolean isSelected, boolean cellHasFocus) {
+            name.setText(value != null ? value.getName() : "");
+            if (isSelected) {
+                setBackground(new Color(246, 248, 252));
+            } else {
+                setBackground(Color.WHITE);
             }
             return this;
         }

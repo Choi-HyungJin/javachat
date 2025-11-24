@@ -165,7 +165,10 @@ public class ChatDao {
     // 채팅방의 이전 메시지 불러오기 (시간 포함)
     public List<ChatMessage> loadMessages(String roomName, int limit) {
         List<ChatMessage> messages = new ArrayList<>();
-        String sql = "SELECT u.nickname, m.content, TO_CHAR(m.sent_at, 'HH24:MI') as sent_time " +
+        String sql = "SELECT CASE " +
+                     "         WHEN EXISTS (SELECT 1 FROM ChatRoomUsers cu2 WHERE cu2.room_id = m.room_id AND cu2.user_id = u.user_id) " +
+                     "              THEN u.nickname ELSE '(알수없음)' END AS nickname, " +
+                     "       m.content, TO_CHAR(m.sent_at, 'HH24:MI') as sent_time " +
                      "FROM Messages m " +
                      "JOIN ChatRooms r ON m.room_id = r.room_id " +
                      "JOIN users u ON m.sender_id = u.user_id " +

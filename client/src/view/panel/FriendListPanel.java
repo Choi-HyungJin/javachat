@@ -11,13 +11,11 @@ import view.frame.ChatFrame;
 import view.frame.LobbyFrame;
 
 import javax.swing.*;
-import javax.swing.SwingUtilities;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
-import java.util.stream.Collectors;
-
+import javax.swing.SwingUtilities;
 public class FriendListPanel extends JPanel {
 
     private final DefaultListModel<User> fullModel = new DefaultListModel<>();
@@ -33,25 +31,46 @@ public class FriendListPanel extends JPanel {
 
     public FriendListPanel() {
         setLayout(new BorderLayout(10, 10));
-        setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        setBackground(Color.WHITE);
+
+        add(buildHeader(), BorderLayout.NORTH);
+        add(buildList(), BorderLayout.CENTER);
+        add(buildFooter(), BorderLayout.SOUTH);
+    }
+
+    private JComponent buildHeader() {
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+
+        JLabel title = new JLabel("친구");
+        title.setFont(new Font("맑은 고딕", Font.BOLD, 18));
+        header.add(title, BorderLayout.WEST);
 
         JPanel topBar = new JPanel(new BorderLayout(5, 5));
+        topBar.setOpaque(false);
+
+        searchField.setToolTipText("친구 검색");
+        searchField.getDocument().addDocumentListener(new SimpleDocumentListener(this::applyFilter));
+
         JButton myProfileBtn = new JButton("내 프로필");
         myProfileBtn.addActionListener(e -> openMyProfileDialog());
         JButton addFriendBtn = new JButton("친구추가");
         addFriendBtn.addActionListener(e -> onAddFriend());
 
-        searchField.setToolTipText("친구 검색");
-        searchField.getDocument().addDocumentListener(new SimpleDocumentListener(this::applyFilter));
-
         JPanel btnGroup = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        btnGroup.setOpaque(false);
         btnGroup.add(myProfileBtn);
         btnGroup.add(addFriendBtn);
 
         topBar.add(searchField, BorderLayout.CENTER);
         topBar.add(btnGroup, BorderLayout.EAST);
-        add(topBar, BorderLayout.NORTH);
 
+        header.add(topBar, BorderLayout.SOUTH);
+        return header;
+    }
+
+    private JComponent buildList() {
         friendList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         friendList.setCellRenderer(new FriendRenderer());
         friendList.addMouseListener(new MouseAdapter() {
@@ -68,14 +87,18 @@ public class FriendListPanel extends JPanel {
             }
         });
         JScrollPane scrollPane = new JScrollPane(friendList);
-        add(scrollPane, BorderLayout.CENTER);
+        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(235, 235, 235)));
+        return scrollPane;
+    }
 
-        JPanel detailPanel = new JPanel();
-        detailPanel.setLayout(new GridLayout(2, 1));
+    private JComponent buildFooter() {
+        JPanel detailPanel = new JPanel(new GridLayout(2, 1));
+        detailPanel.setOpaque(false);
         detailPanel.add(nicknameLabel);
         detailPanel.add(idLabel);
 
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 5));
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
+        actions.setOpaque(false);
         profileBtn.addActionListener(e -> {
             User selected = friendList.getSelectedValue();
             if (selected != null) {
@@ -94,10 +117,11 @@ public class FriendListPanel extends JPanel {
         actions.add(removeBtn);
 
         JPanel south = new JPanel(new BorderLayout());
+        south.setOpaque(false);
+        south.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
         south.add(detailPanel, BorderLayout.CENTER);
         south.add(actions, BorderLayout.SOUTH);
-
-        add(south, BorderLayout.SOUTH);
+        return south;
     }
 
     public void setFriends(List<User> friends) {
@@ -199,7 +223,7 @@ public class FriendListPanel extends JPanel {
         dialog.setSize(300, 250);
         dialog.setLocationRelativeTo(this);
 
-        JLabel avatar = new JLabel(friend.getNickName().substring(0, 1), SwingConstants.CENTER);
+        JLabel avatar = new JLabel(friend.getNickName().isEmpty() ? "?" : friend.getNickName().substring(0, 1), SwingConstants.CENTER);
         avatar.setPreferredSize(new Dimension(80, 80));
         avatar.setOpaque(true);
         avatar.setBackground(new Color(180, 200, 230));
@@ -268,7 +292,7 @@ public class FriendListPanel extends JPanel {
 
         FriendRenderer() {
             setLayout(new BorderLayout(10, 0));
-            setOpaque(true);
+            setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
             avatar.setPreferredSize(new Dimension(36, 36));
             avatar.setOpaque(true);
             avatar.setBackground(new Color(200, 210, 230));
@@ -276,7 +300,6 @@ public class FriendListPanel extends JPanel {
             avatar.setFont(avatar.getFont().deriveFont(Font.BOLD, 14f));
             add(avatar, BorderLayout.WEST);
             add(name, BorderLayout.CENTER);
-            setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         }
 
         @Override
@@ -289,7 +312,7 @@ public class FriendListPanel extends JPanel {
             name.setText(value != null ? value.getNickName() : "");
 
             if (isSelected) {
-                setBackground(new Color(235, 239, 250));
+                setBackground(new Color(246, 248, 252));
             } else {
                 setBackground(Color.WHITE);
             }
@@ -297,7 +320,6 @@ public class FriendListPanel extends JPanel {
         }
     }
 
-    // Simple document listener utility
     private static class SimpleDocumentListener implements javax.swing.event.DocumentListener {
         private final Runnable callback;
         SimpleDocumentListener(Runnable callback) {
