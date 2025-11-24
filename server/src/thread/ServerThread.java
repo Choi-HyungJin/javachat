@@ -30,6 +30,7 @@ public class ServerThread extends Thread {
 
     private final Socket socket;
     private final ChatService chatService;
+    private User currentUser;
 
     public ServerThread(Socket socket, ChatService chatService) {
         this.socket = socket;
@@ -45,14 +46,8 @@ public class ServerThread extends Thread {
                 String str = reader.readLine();
                 if (str == null) {
                     System.out.println("socket error (can't get socket input stream) - client socket closed");
-                    try {
-                        socket.close();
-                        System.out.println("socket closed.");
-                        ServerApplication.sockets.remove(socket);
-                        return;
-                    } catch (Exception e) {
-                        System.out.println(e.getMessage());
-                    }
+                    cleanupConnection();
+                    return;
                 }
 
                 if (str.startsWith("POST /address")) {
@@ -70,6 +65,7 @@ public class ServerThread extends Thread {
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
+            cleanupConnection();
         }
     }
 
@@ -78,22 +74,20 @@ public class ServerThread extends Thread {
 
         case LOGIN:
             LoginRequest loginReq = new LoginRequest(message);
-
-            boolean isValid = chatService.isValidLogin(loginReq.getId(), loginReq.getPw());
-            if (!isValid) {
-                sendResponse("LOGIN_FAIL");
-                return;
-            }
-
             User user = chatService.getUserByLogin(loginReq.getId(), loginReq.getPw());
             if (user == null) {
-                sendResponse("LOGIN_FAIL");
+                sendDtoResponse(DtoType.LOGIN_FAIL);
+                return;
+            }
+            if (user.isBanned()) {
+                sendDtoResponse(DtoType.LOGIN_BANNED);
                 return;
             }
 
             user.setSocket(socket);
             chatService.removeUser(user.getId());
             chatService.addUser(user);
+            currentUser = user;
 
             List<ChatRoom> dbChatRooms = chatService.getAllChatRooms();
             sendMessage(new InitDataResponse(dbChatRooms, chatService.getUsers()));
@@ -103,6 +97,11 @@ public class ServerThread extends Thread {
             UserListResponse lobbyUserList = new UserListResponse("Lobby", chatService.getUsers());
             broadcastToAll(lobbyUserList);
 
+            if (isAdmin()) {
+                sendAdminSnapshot();
+            }
+
+
             System.out.println("[LOGIN] 사용자 로그인 완료: " + user.getId() + " (" + user.getNickName() + ")");
             break;
 
@@ -111,6 +110,9 @@ public class ServerThread extends Thread {
             System.out.println("[LOGOUT] 로그아웃 요청 - 사용자 " + logoutReq.getUserId());
 
             chatService.removeUser(logoutReq.getUserId());
+            if (currentUser != null && logoutReq.getUserId().equals(currentUser.getId())) {
+                currentUser = null;
+            }
 
             UserListResponse updatedUserList = new UserListResponse("Lobby", chatService.getUsers());
             broadcastToAll(updatedUserList);
@@ -343,13 +345,98 @@ public class ServerThread extends Thread {
             }
             break;
 
+        case ADMIN_INIT:
+            if (!isAdmin()) {
+                sendMessage(new AdminActionResultResponse(false, "??? ??? ?????."));
+                break;
+            }
+            sendAdminSnapshot();
+            break;
+
+        case ADMIN_FORCE_LOGOUT:
+            if (!isAdmin()) {
+                sendMessage(new AdminActionResultResponse(false, "??? ??? ?????."));
+                break;
+            }
+            AdminForceLogoutRequest forceLogoutReq = new AdminForceLogoutRequest(message, true);
+            boolean forcedLogout = handleForceLogout(forceLogoutReq.getUserId(), "???? ?? ?????????.");
+            sendMessage(new AdminActionResultResponse(forcedLogout, forcedLogout ? "???? ?????????." : "?? ???? ?? ? ????."));
+            if (forcedLogout) {
+                sendAdminSnapshot();
+                broadcastToAll(new UserListResponse("Lobby", chatService.getUsers()));
+            }
+            break;
+
+        case ADMIN_FORCE_EXIT:
+            if (!isAdmin()) {
+                sendMessage(new AdminActionResultResponse(false, "??? ??? ?????."));
+                break;
+            }
+            AdminForceExitRequest forceExitReq = new AdminForceExitRequest(message, true);
+            boolean forcedExit = handleForceExit(forceExitReq.getUserId(), forceExitReq.getRoomName(), "???? ?? ???????.");
+            sendMessage(new AdminActionResultResponse(forcedExit, forcedExit ? "????? ?? ???????." : "???/???? ?? ? ????."));
+            if (forcedExit) {
+                sendAdminSnapshot();
+            }
+            break;
+
+        case ADMIN_BAN:
+            if (!isAdmin()) {
+                sendMessage(new AdminActionResultResponse(false, "??? ??? ?????."));
+                break;
+            }
+            AdminBanRequest banReq = new AdminBanRequest(message, true);
+            boolean banUpdated = chatService.updateBanStatus(banReq.getUserId(), banReq.isBanned());
+            if (banUpdated && banReq.isBanned()) {
+                handleForceLogout(banReq.getUserId(), "???? ?? ???????.");
+            }
+            sendMessage(new AdminActionResultResponse(banUpdated, banUpdated ? (banReq.isBanned() ? "???? ??????." : "??? ??? ??????.") : "?? ?? ??? ??????."));
+            if (banUpdated) {
+                sendAdminSnapshot();
+                broadcastToAll(new UserListResponse("Lobby", chatService.getUsers()));
+            }
+            break;
+
+        case ADMIN_MESSAGE_SEARCH:
+            if (!isAdmin()) {
+                sendMessage(new AdminActionResultResponse(false, "??? ??? ?????."));
+                break;
+            }
+            AdminMessageSearchRequest searchReq = new AdminMessageSearchRequest(message, true);
+            sendMessage(new AdminMessageSearchResponse(chatService.searchMessages(searchReq.getNickname(), searchReq.getRoomName())));
+            break;
+
+        case ADMIN_MESSAGE_DELETE:
+            if (!isAdmin()) {
+                sendMessage(new AdminActionResultResponse(false, "??? ??? ?????."));
+                break;
+            }
+            AdminMessageDeleteRequest deleteReq = new AdminMessageDeleteRequest(message, true);
+            boolean deleted = chatService.deleteMessage(deleteReq.getMessageId());
+            sendMessage(new AdminActionResultResponse(deleted, deleted ? "???? ??????." : "??? ??? ??????."));
+            break;
+
+        case ADMIN_ROOM_DELETE:
+            if (!isAdmin()) {
+                sendMessage(new AdminActionResultResponse(false, "??? ??? ?????."));
+                break;
+            }
+            AdminRoomDeleteRequest roomDeleteReq = new AdminRoomDeleteRequest(message, true);
+            boolean roomDeleted = handleRoomDeletion(roomDeleteReq.getRoomName());
+            if (roomDeleted) {
+                sendMessage(new AdminActionResultResponse(true, "???? ??????."));
+            } else {
+                sendMessage(new AdminActionResultResponse(false, "??? ??? ??????."));
+            }
+            break;
+
         case USER_LIST:
         case CHAT_ROOM_LIST:
-            System.out.println("아직 구현되지 않은 기능: " + type);
+            System.out.println("?? ???? ?? ??: " + type);
             break;
 
         default:
-            System.out.println("알 수 없는 메시지 타입: " + type);
+            System.out.println("???? ?? ??? ??: " + type);
             break;
         }
     }
@@ -423,6 +510,80 @@ public class ServerThread extends Thread {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private boolean isAdmin() {
+        return currentUser != null && "ADMIN".equalsIgnoreCase(currentUser.getRole());
+    }
+
+    private void sendAdminSnapshot() {
+        sendMessage(new AdminUserListResponse(chatService.getAllUsersWithStatus()));
+        sendMessage(new AdminChatRoomListResponse(chatService.getChatRoomsWithCounts()));
+    }
+
+    private void sendDirectToUser(User target, DtoType type, String payload) {
+        try {
+            Socket userSocket = target.getSocket();
+            if (userSocket != null && !userSocket.isClosed()) {
+                PrintWriter sender = new PrintWriter(userSocket.getOutputStream());
+                sender.println(type + ":" + payload);
+                sender.flush();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private boolean handleForceLogout(String userId, String reason) {
+        User target = chatService.getUser(userId);
+        if (target != null) {
+            chatService.removeUser(userId);
+            sendDirectToUser(target, DtoType.FORCE_LOGOUT, reason);
+            try {
+                if (target.getSocket() != null) {
+                    target.getSocket().close();
+                }
+            } catch (Exception ignore) { }
+            return true;
+        }
+        chatService.removeUser(userId);
+        return false;
+    }
+
+    private boolean handleForceExit(String userId, String roomName, String reason) {
+        User removed = chatService.exitChatRoom(roomName, userId);
+        if (removed != null) {
+            sendDirectToUser(removed, DtoType.FORCE_EXIT, roomName + "|" + reason);
+            List<User> remaining = chatService.getChatRoomUsers(roomName);
+            UserListResponse list = new UserListResponse(roomName, remaining);
+            broadcastToRoom(roomName, list);
+            return true;
+        }
+        chatService.removeUserFromRoom(roomName, userId);
+        ChatRoom room = chatService.getChatRoom(roomName);
+        if (room != null) {
+            UserListResponse list = new UserListResponse(roomName, chatService.getChatRoomUsers(roomName));
+            broadcastToRoom(roomName, list);
+        }
+        return true;
+    }
+
+    private boolean handleRoomDeletion(String roomName) {
+        if (ChatDao.LOBBY_CHAT_NAME.equals(roomName)) {
+            return false;
+        }
+        ChatRoom room = chatService.getChatRoom(roomName);
+        List<User> targets = room != null ? new ArrayList<>(room.getUsers()) : new ArrayList<>();
+        boolean deleted = chatService.deleteChatRoom(roomName);
+        if (deleted) {
+            for (User u : targets) {
+                sendDirectToUser(u, DtoType.FORCE_EXIT, roomName + "|채팅방이 관리자에 의해 종료되었습니다.");
+            }
+            broadcastToAll(new ChatRoomListResponse(chatService.getAllChatRooms()));
+            sendAdminSnapshot();
+            return true;
+        }
+        return false;
     }
 
     private boolean isValidPassword(String password) {
@@ -502,5 +663,24 @@ public class ServerThread extends Thread {
             return "DM-" + userId + "-" + friendId;
         }
         return "DM-" + friendId + "-" + userId;
+    }
+
+    private void cleanupConnection() {
+        try {
+            if (socket != null && !socket.isClosed()) {
+                socket.close();
+                System.out.println("socket closed.");
+            }
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        } finally {
+            ServerApplication.sockets.remove(socket);
+            if (currentUser != null) {
+                chatService.removeUser(currentUser.getId());
+                UserListResponse updatedUserList = new UserListResponse("Lobby", chatService.getUsers());
+                broadcastToAll(updatedUserList);
+                currentUser = null;
+            }
+        }
     }
 }

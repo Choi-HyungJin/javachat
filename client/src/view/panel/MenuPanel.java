@@ -82,6 +82,7 @@ public class MenuPanel extends JPanel {
                 // 채팅 화면만 닫기 (서버에 EXIT 전송 안 함)
                 Application.chatPanelMap.remove(chatRoomName);
                 Application.chatRoomUserListPanelMap.remove(chatRoomName);
+                Application.chatFrameMap.remove(chatRoomName);
                 
                 frame.dispose();
             }
@@ -102,6 +103,7 @@ public class MenuPanel extends JPanel {
                 // 채팅 화면 닫기
                 Application.chatPanelMap.remove(chatRoomName);
                 Application.chatRoomUserListPanelMap.remove(chatRoomName);
+                Application.chatFrameMap.remove(chatRoomName);
                 
                 frame.dispose();
             }

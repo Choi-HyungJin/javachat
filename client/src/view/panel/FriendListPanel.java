@@ -322,7 +322,8 @@ public class FriendListPanel extends JPanel {
         }
 
         if (!Application.chatPanelMap.containsKey(roomName)) {
-            ChatFrame chatFrame = new ChatFrame(roomName);
+                        ChatFrame chatFrame = new ChatFrame(roomName);
+            Application.chatFrameMap.put(roomName, chatFrame);
             Application.chatPanelMap.put(roomName, chatFrame.getChatPanel());
             Application.chatRoomUserListPanelMap.put(roomName, chatFrame.getChatRoomUserListPanel());
         }

@@ -153,7 +153,8 @@ public class ChatRoomListPanel extends JPanel {
             return;
         }
 
-        ChatFrame chatFrame = new ChatFrame(chatRoomName);
+                ChatFrame chatFrame = new ChatFrame(chatRoomName);
+        Application.chatFrameMap.put(chatRoomName, chatFrame);
         Application.chatPanelMap.put(chatRoomName, chatFrame.getChatPanel());
         Application.chatRoomUserListPanelMap.put(chatRoomName, chatFrame.getChatRoomUserListPanel());
         Application.sender.sendMessage(new EnterChatRequest(chatRoomName, Application.me.getId()));

@@ -87,6 +87,18 @@ public class MessageReceiver extends Thread {
         System.out.println("[" + type + "] 메시지 수신: " + message);
 
         switch (type) {
+            case LOGIN_FAIL:
+                if (Application.loginFrame != null) {
+                    SwingUtilities.invokeLater(() -> Application.loginFrame.handleLoginFailure("??? ?? ????? ???? ????."));
+                }
+                break;
+
+            case LOGIN_BANNED:
+                if (Application.loginFrame != null) {
+                    SwingUtilities.invokeLater(() -> Application.loginFrame.handleLoginFailure("??? ???? ???? ? ????."));
+                }
+                break;
+
             case LOGIN:
                 InitResponse initRes = new InitResponse(message);
                 Application.chatRooms = initRes.getChatRooms();
@@ -95,8 +107,35 @@ public class MessageReceiver extends Thread {
                 for (domain.User u : Application.users) {
                     if (u.getId().equals(Application.me.getId())) {
                         Application.me.setNickName(u.getNickName());
-                        System.out.println("로그인 완료: " + Application.me.getId() + " (" + Application.me.getNickName() + ")");
+                        Application.me.setRole(u.getRole());
+                        Application.me.setOnline(u.isOnline());
+                        Application.me.setBanned(u.isBanned());
+                        System.out.println("??? ??: " + Application.me.getId() + " (" + Application.me.getNickName() + ")");
                         break;
+                    }
+                }
+
+                SwingUtilities.invokeLater(() -> {
+                    if (Application.isAdmin()) {
+                        if (Application.adminFrame == null) {
+                            Application.adminFrame = new view.frame.AdminFrame();
+                        }
+                        Application.adminFrame.setVisible(true);
+                        Application.sender.sendMessage(new dto.request.AdminInitRequest());
+                        if (Application.lobbyFrame != null) {
+                            Application.lobbyFrame.setVisible(false);
+                        }
+                    } else if (Application.lobbyFrame != null) {
+                        Application.lobbyFrame.setVisible(true);
+                    }
+                    if (Application.loginFrame != null) {
+                        Application.loginFrame.dispose();
+                    }
+                    if (LobbyFrame.chatRoomListPanel != null) {
+                        LobbyFrame.chatRoomListPanel.paintChatRoomList();
+                    }
+                });
+                break;
                     }
                 }
 
@@ -131,6 +170,51 @@ public class MessageReceiver extends Thread {
                         LobbyFrame.chatRoomListPanel.addChatRoom(chatRoomName);
                     }
                 }
+                break;
+
+            case ADMIN_USER_LIST:
+                AdminUserListResponse adminUsers = new AdminUserListResponse(message);
+                if (Application.adminFrame != null) {
+                    Application.adminFrame.updateUsers(adminUsers.getUsers());
+                }
+                break;
+
+            case ADMIN_CHATROOM_LIST:
+                AdminChatRoomListResponse adminRooms = new AdminChatRoomListResponse(message);
+                if (Application.adminFrame != null) {
+                    Application.adminFrame.updateChatRooms(adminRooms.getChatRooms());
+                }
+                break;
+
+            case ADMIN_MESSAGE_RESULT:
+                AdminMessageSearchResponse adminMessages = new AdminMessageSearchResponse(message);
+                if (Application.adminFrame != null) {
+                    Application.adminFrame.updateMessages(adminMessages.getMessages());
+                }
+                break;
+
+            case ADMIN_ACTION_RESULT:
+                AdminActionResultResponse adminAction = new AdminActionResultResponse(message);
+                SwingUtilities.invokeLater(() ->
+                        JOptionPane.showMessageDialog(null, adminAction.getMessage(),
+                                adminAction.isSuccess() ? "??" : "??",
+                                adminAction.isSuccess() ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.ERROR_MESSAGE));
+                break;
+
+            case FORCE_LOGOUT:
+                SwingUtilities.invokeLater(() -> {
+                    String notice = (message == null || message.isEmpty()) ? "???? ?? ?????????." : message;
+                    JOptionPane.showMessageDialog(null, notice, "??", JOptionPane.WARNING_MESSAGE);
+                    try { socket.close(); } catch (Exception ignored) { }
+                    System.exit(0);
+                });
+                break;
+
+            case FORCE_EXIT:
+                String[] exitParts = message.split("\|", 2);
+                String forcedRoom = exitParts.length > 0 ? exitParts[0] : "";
+                String reason = exitParts.length > 1 ? exitParts[1] : "????? ???????.";
+                closeChatRoom(forcedRoom, reason);
                 break;
 
             case USER_LIST:
@@ -210,7 +294,8 @@ public class MessageReceiver extends Thread {
                         }
                     }
                     if (!Application.chatPanelMap.containsKey(inviteRes.getRoomName())) {
-                        ChatFrame chatFrame = new ChatFrame(inviteRes.getRoomName());
+                                                ChatFrame chatFrame = new ChatFrame(inviteRes.getRoomName());
+                        Application.chatFrameMap.put(inviteRes.getRoomName(), chatFrame);
                         Application.chatPanelMap.put(inviteRes.getRoomName(), chatFrame.getChatPanel());
                         Application.chatRoomUserListPanelMap.put(inviteRes.getRoomName(), chatFrame.getChatRoomUserListPanel());
                     }
@@ -240,4 +325,20 @@ public class MessageReceiver extends Thread {
                 break;
         }
     }
+
+    private void closeChatRoom(String roomName, String reason) {
+        ChatFrame frame = Application.chatFrameMap.remove(roomName);
+        if (frame != null) {
+            frame.dispose();
+        }
+        Application.chatPanelMap.remove(roomName);
+        Application.chatRoomUserListPanelMap.remove(roomName);
+        SwingUtilities.invokeLater(() -> {
+            JOptionPane.showMessageDialog(null, reason, "??", JOptionPane.WARNING_MESSAGE);
+            if (LobbyFrame.chatRoomListPanel != null) {
+                LobbyFrame.chatRoomListPanel.paintChatRoomList();
+            }
+        });
+    }
+
 }

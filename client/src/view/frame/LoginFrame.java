@@ -24,8 +24,10 @@ public class LoginFrame extends JFrame implements ActionListener {
     private final JButton qrButton = new JButton("QR코드 로그인");
     private final JButton joinLink = new JButton("회원가입");
 
-    public LoginFrame(LobbyFrame lobbyFrame) {
+        private boolean loggingIn = false;
+public LoginFrame(LobbyFrame lobbyFrame) {
         this.lobbyFrame = lobbyFrame;
+        Application.loginFrame = this;
         setTitle("Chat - Login");
         setSize(410, 650);
         setResizable(false);
@@ -254,28 +256,41 @@ public class LoginFrame extends JFrame implements ActionListener {
             String id = idField.getText().trim();
             String pw = new String(pwField.getPassword()).trim();
 
+            if (loggingIn) {
+                return;
+            }
             if (id.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "아이디를 입력하세요", "로그인 오류", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "???? ??????.", "??? ??", JOptionPane.ERROR_MESSAGE);
                 return;
             }
             if (pw.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "비밀번호를 입력하세요", "로그인 오류", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "????? ??????.", "??? ??", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
             Application.me = new User(id, "");
             Application.sender.sendMessage(new LoginRequest(id, pw));
-
-            this.dispose();
-            lobbyFrame.setVisible(true);
+            loggingIn = true;
+            loginButton.setEnabled(false);
+            loginButton.setText("??? ?...");
         }
 
         if (e.getSource() == qrButton) {
-            JOptionPane.showMessageDialog(this, "QR코드 로그인 준비 중입니다.", "알림", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, "QR?? ???? ??????.", "??", JOptionPane.INFORMATION_MESSAGE);
         }
 
         if (e.getSource() == joinLink) {
             new JoinFrame();
         }
     }
+
+
+
+    public void handleLoginFailure(String message) {
+        loggingIn = false;
+        loginButton.setEnabled(true);
+        loginButton.setText("???");
+        JOptionPane.showMessageDialog(this, message, "??? ??", JOptionPane.ERROR_MESSAGE);
+    }
+
 }

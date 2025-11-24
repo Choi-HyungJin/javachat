@@ -72,6 +72,7 @@ public class CreateChatFrame extends JFrame {
             frame.dispose();
 
             ChatFrame chatFrame = new ChatFrame(chatRoomName);
+            Application.chatFrameMap.put(chatRoomName, chatFrame);
 
             Application.chatPanelMap.put(chatRoomName, chatFrame.chatPanel);
             Application.chatRoomUserListPanelMap.put(chatRoomName, chatFrame.chatRoomUserListPanel);

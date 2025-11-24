@@ -4,22 +4,29 @@ import java.util.Date;
 
 public class User {
 
-    private String id; // 아이디: 사용자 식별자
-
-    private String nickname; // 이름: 채팅방에서 사용되는 이름
-
-    private Date createdAt; // 로그인 시점
+    private String id;
+    private String nickname;
+    private Date createdAt;
+    private String role = "USER";
+    private boolean online;
+    private boolean banned;
 
     public User(String id, String nickname) {
-        this.id = id;
-        this.nickname = nickname;
-        this.createdAt = new Date();
+        this(id, nickname, "USER", false, false);
     }
 
     public User(String id, String nickname, String date) {
+        this(id, nickname, "USER", false, false);
+        this.createdAt = new Date(date);
+    }
+
+    public User(String id, String nickname, String role, boolean online, boolean banned) {
         this.id = id;
         this.nickname = nickname;
-        this.createdAt = new Date(date);
+        this.role = role;
+        this.online = online;
+        this.banned = banned;
+        this.createdAt = new Date();
     }
 
     public String getId() {
@@ -36,5 +43,29 @@ public class User {
     
     public void setNickName(String nickname) {
         this.nickname = nickname;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+
+    public boolean isOnline() {
+        return online;
+    }
+
+    public void setOnline(boolean online) {
+        this.online = online;
+    }
+
+    public boolean isBanned() {
+        return banned;
+    }
+
+    public void setBanned(boolean banned) {
+        this.banned = banned;
     }
 }

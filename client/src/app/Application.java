@@ -10,7 +10,10 @@ import java.util.Map;
 import network.MessageReceiver;
 import network.MessageSender;
 import util.PostcodeHttpServer;
+import view.frame.AdminFrame;
 import view.frame.LobbyFrame;
+import view.frame.LoginFrame;
+import view.frame.ChatFrame;
 import view.panel.ChatPanel;
 import view.panel.ChatRoomUserListPanel;
 
@@ -23,6 +26,8 @@ public class Application {
     public static MessageReceiver receiver;
 
     public static LobbyFrame lobbyFrame;
+    public static LoginFrame loginFrame;
+    public static AdminFrame adminFrame;
 
     public static User me;
 
@@ -32,6 +37,7 @@ public class Application {
 
     public static Map<String, ChatPanel> chatPanelMap = new HashMap<>();
     public static Map<String, ChatRoomUserListPanel> chatRoomUserListPanelMap = new HashMap<>();
+    public static Map<String, ChatFrame> chatFrameMap = new HashMap<>();
 
     public static final String LOBBY_CHAT_NAME = "Lobby";
 
@@ -51,5 +57,9 @@ public class Application {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public static boolean isAdmin() {
+        return me != null && "ADMIN".equalsIgnoreCase(me.getRole());
     }
 }

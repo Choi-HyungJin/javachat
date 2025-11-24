@@ -81,27 +81,11 @@ public class ChatService {
         return false;
     }
 
-    public boolean isValidLogin(String userId, String password) {
-        try {
-            Connection conn = chatDao.getConnection();
-            String sql = "SELECT COUNT(*) FROM users WHERE user_id = ? AND password = ?";
-            PreparedStatement pstmt = conn.prepareStatement(sql);
-            pstmt.setString(1, userId);
-            pstmt.setString(2, password);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                return rs.getInt(1) > 0;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
     public User getUserByLogin(String userId, String password) {
         try {
             Connection conn = chatDao.getConnection();
-            String sql = "SELECT user_id, nickname FROM users WHERE user_id = ? AND password = ?";
+            String sql = "SELECT user_id, nickname, role, NVL(is_banned, 0) AS is_banned " +
+                    "FROM users WHERE user_id = ? AND password = ?";
             PreparedStatement pstmt = conn.prepareStatement(sql);
             pstmt.setString(1, userId);
             pstmt.setString(2, password);
@@ -110,7 +94,9 @@ public class ChatService {
             if (rs.next()) {
                 String id = rs.getString("user_id");
                 String nickname = rs.getString("nickname");
-                return new User(id, nickname);
+                String role = rs.getString("role");
+                boolean banned = rs.getInt("is_banned") == 1;
+                return new User(id, nickname, role, false, banned);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -132,11 +118,14 @@ public class ChatService {
     }
 
     public void addUser(User user) {
+        user.setOnline(true);
         chatDao.addUser(user);
+        chatDao.updateOnlineStatus(user.getId(), true);
     }
 
     public void removeUser(String userId) {
         chatDao.removeUser(userId);
+        chatDao.updateOnlineStatus(userId, false);
     }
 
     public List<User> getUsers() {
@@ -215,6 +204,10 @@ public class ChatService {
             e.printStackTrace();
             return null;
         }
+    }
+
+    public void removeUserFromRoom(String roomName, String userId) {
+        chatDao.removeUserFromChatRoom(roomName, userId);
     }
 
     public ChatRoom getChatRoom(String roomName) {
@@ -325,5 +318,29 @@ public class ChatService {
 
     public List<ChatDao.ChatMessage> loadChatMessages(String roomName) {
         return chatDao.loadMessages(roomName, 100);
+    }
+
+    public List<User> getAllUsersWithStatus() {
+        return chatDao.findAllUsersWithStatus();
+    }
+
+    public boolean updateBanStatus(String userId, boolean banned) {
+        return chatDao.updateBanStatus(userId, banned);
+    }
+
+    public List<ChatRoom> getChatRoomsWithCounts() {
+        return chatDao.findChatRoomsWithCounts();
+    }
+
+    public boolean deleteChatRoom(String roomName) {
+        return chatDao.deleteChatRoom(roomName);
+    }
+
+    public List<ChatDao.AdminMessageRecord> searchMessages(String nickname, String roomName) {
+        return chatDao.searchMessages(nickname, roomName);
+    }
+
+    public boolean deleteMessage(long messageId) {
+        return chatDao.deleteMessage(messageId);
     }
 }

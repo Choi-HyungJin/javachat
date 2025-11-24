@@ -19,7 +19,12 @@ public class UserListResponse {
 
         for (int i = 1; i<userValues.length; i++) {
             String[] value = userValues[i].split(",");
-            users.add(new User(value[0], value[1]));
+            String id = value.length > 0 ? value[0] : "";
+            String nickname = value.length > 1 ? value[1] : "";
+            String role = value.length > 2 ? value[2] : "USER";
+            boolean online = value.length > 3 && "1".equals(value[3]);
+            boolean banned = value.length > 4 && "1".equals(value[4]);
+            users.add(new User(id, nickname, role, online, banned));
         }
 
     }
