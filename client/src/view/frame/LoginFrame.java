@@ -25,8 +25,9 @@ public class LoginFrame extends JFrame implements ActionListener {
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        getContentPane().setBackground(new Color(255, 235, 0));
-        setLayout(new BorderLayout());
+        Color kakaoYellow = new Color(255, 235, 0);
+        JPanel root = new JPanel(new BorderLayout());
+        root.setBackground(kakaoYellow);
 
         JPanel center = new JPanel();
         center.setOpaque(false);
@@ -41,7 +42,8 @@ public class LoginFrame extends JFrame implements ActionListener {
         center.add(Box.createVerticalStrut(30));
         center.add(buildAutoLogin());
 
-        add(center, BorderLayout.CENTER);
+        root.add(center, BorderLayout.CENTER);
+        setContentPane(root);
         setVisible(true);
     }
 

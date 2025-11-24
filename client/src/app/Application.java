@@ -2,18 +2,17 @@ package app;
 
 import domain.ChatRoom;
 import domain.User;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import network.MessageReceiver;
 import network.MessageSender;
 import util.PostcodeHttpServer;
 import view.frame.LobbyFrame;
 import view.panel.ChatPanel;
 import view.panel.ChatRoomUserListPanel;
-
-import java.net.Socket;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class Application {
 
@@ -40,7 +39,7 @@ public class Application {
         try {
             PostcodeHttpServer.start();
 
-            socket = new Socket("192.168.0.22", 9000);
+            socket = new Socket("172.16.29.1", 9000);
             System.out.println("connect success to chat server");
 
             sender = new MessageSender(socket);
