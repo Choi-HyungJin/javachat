@@ -47,12 +47,12 @@ public class MessageReceiver extends Thread {
                 if (str == null) {
                     try {
                         socket.close();
-                        System.out.println(Application.me != null ? Application.me.getNickName() + "'s socket is closed." : "Socket is closed.");
+                        System.out.println(Application.me != null ? Application.me.getNickName() + "의 소켓이 닫혔습니다." : "소켓이 닫혔습니다.");
                     } catch(Exception e) {
                         e.printStackTrace();
                     }
 
-                    System.out.println("disconnect");
+                    System.out.println("연결이 종료되었습니다.");
                     System.exit(1);
                 }
                 System.out.println(str);
@@ -71,7 +71,7 @@ public class MessageReceiver extends Thread {
         }
         catch (Exception e) {
             try {
-                System.out.println("socket error (can't get socket input stream)");
+                System.out.println("소켓 오류(입력 스트림을 읽을 수 없습니다)");
                 socket.close();
             } catch (IOException ex) {
                 ex.printStackTrace();
@@ -87,13 +87,13 @@ public class MessageReceiver extends Thread {
         switch (type) {
             case LOGIN_FAIL:
                 if (Application.loginFrame != null) {
-                    SwingUtilities.invokeLater(() -> Application.loginFrame.handleLoginFailure("??? ?? ????? ???? ????."));
+                    SwingUtilities.invokeLater(() -> Application.loginFrame.handleLoginFailure("아이디 또는 비밀번호가 올바르지 않습니다."));
                 }
                 break;
 
             case LOGIN_BANNED:
                 if (Application.loginFrame != null) {
-                    SwingUtilities.invokeLater(() -> Application.loginFrame.handleLoginFailure("??? ???? ???? ? ????."));
+                    SwingUtilities.invokeLater(() -> Application.loginFrame.handleLoginFailure("차단된 계정입니다. 로그인할 수 없습니다."));
                 }
                 break;
 
@@ -108,7 +108,7 @@ public class MessageReceiver extends Thread {
                         Application.me.setRole(u.getRole());
                         Application.me.setOnline(u.isOnline());
                         Application.me.setBanned(u.isBanned());
-                        System.out.println("??? ??: " + Application.me.getId() + " (" + Application.me.getNickName() + ")");
+                        System.out.println("로그인 완료: " + Application.me.getId() + " (" + Application.me.getNickName() + ")");
                         break;
                     }
                 }
@@ -191,14 +191,14 @@ public class MessageReceiver extends Thread {
                 AdminActionResultResponse adminAction = new AdminActionResultResponse(message);
                 SwingUtilities.invokeLater(() ->
                         JOptionPane.showMessageDialog(null, adminAction.getMessage(),
-                                adminAction.isSuccess() ? "??" : "??",
+                                adminAction.isSuccess() ? "알림" : "오류",
                                 adminAction.isSuccess() ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.ERROR_MESSAGE));
                 break;
 
             case FORCE_LOGOUT:
                 SwingUtilities.invokeLater(() -> {
-                    String notice = (message == null || message.isEmpty()) ? "???? ?? ?????????." : message;
-                    JOptionPane.showMessageDialog(null, notice, "??", JOptionPane.WARNING_MESSAGE);
+                    String notice = (message == null || message.isEmpty()) ? "관리자에 의해 로그아웃되었습니다." : message;
+                    JOptionPane.showMessageDialog(null, notice, "알림", JOptionPane.WARNING_MESSAGE);
                     try { socket.close(); } catch (Exception ignored) { }
                     System.exit(0);
                 });
@@ -207,7 +207,7 @@ public class MessageReceiver extends Thread {
             case FORCE_EXIT:
                 String[] exitParts = message.split("\\|", 2);
                 String forcedRoom = exitParts.length > 0 ? exitParts[0] : "";
-                String reason = exitParts.length > 1 ? exitParts[1] : "????? ???????.";
+                String reason = exitParts.length > 1 ? exitParts[1] : "채팅방에서 퇴장되었습니다.";
                 closeChatRoom(forcedRoom, reason);
                 break;
 
@@ -315,7 +315,7 @@ public class MessageReceiver extends Thread {
                 break;
 
             default:
-                System.out.println("[WARNING] 처리할 수 없는 메시지 타입 " + type);
+                System.out.println("[경고] 처리할 수 없는 메시지 타입 " + type);
                 break;
             }
         
@@ -329,7 +329,7 @@ public class MessageReceiver extends Thread {
         Application.chatPanelMap.remove(roomName);
         Application.chatRoomUserListPanelMap.remove(roomName);
         SwingUtilities.invokeLater(() -> {
-            JOptionPane.showMessageDialog(null, reason, "??", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(null, reason, "알림", JOptionPane.WARNING_MESSAGE);
             if (LobbyFrame.chatRoomListPanel != null) {
                 LobbyFrame.chatRoomListPanel.paintChatRoomList();
             }
