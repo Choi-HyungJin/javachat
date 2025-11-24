@@ -1,6 +1,7 @@
 package view.frame;
 
 import app.Application;
+import dto.request.LogoutRequest;
 import view.panel.ChatRoomListPanel;
 import view.panel.FriendListPanel;
 
@@ -17,6 +18,10 @@ public class LobbyFrame extends JFrame implements WindowListener {
 
     private final CardLayout cardLayout = new CardLayout();
     private final JPanel contentCards = new JPanel(cardLayout);
+    private final Color BACKGROUND = new Color(245, 242, 235);
+
+    private JButton friendNavBtn;
+    private JButton chatNavBtn;
 
     public LobbyFrame() {
         super("Chat");
@@ -25,7 +30,7 @@ public class LobbyFrame extends JFrame implements WindowListener {
         createChatFrame = new CreateChatFrame();
 
         setLayout(new BorderLayout());
-        setSize(1000, 720);
+        setSize(460, 780);
         setLocationRelativeTo(null);
 
         friendListPanel = new FriendListPanel();
@@ -37,22 +42,29 @@ public class LobbyFrame extends JFrame implements WindowListener {
         add(buildSidebar(), BorderLayout.WEST);
         add(buildMainArea(), BorderLayout.CENTER);
         addWindowListener(this);
+        updateNavSelection("friends");
         setVisible(false);
     }
 
     private JPanel buildSidebar() {
         JPanel side = new JPanel();
-        side.setPreferredSize(new Dimension(70, 720));
-        side.setBackground(new Color(245, 245, 247));
-        side.setLayout(new GridLayout(6, 1, 0, 12));
-        side.setBorder(BorderFactory.createEmptyBorder(24, 8, 24, 8));
+        side.setPreferredSize(new Dimension(72, 720));
+        side.setBackground(BACKGROUND);
+        side.setLayout(new BoxLayout(side, BoxLayout.Y_AXIS));
+        side.setBorder(BorderFactory.createEmptyBorder(18, 10, 18, 10));
 
-        side.add(createNavButton("😊", "친구", "friends"));
-        side.add(createNavButton("💬", "채팅", "chats"));
-        side.add(new JLabel()); // spacer
-        side.add(new JLabel());
-        side.add(createSettingsButton());
-        side.add(new JLabel());
+        friendNavBtn = createNavButton("\uD83D\uDC64", "친구", "friends");
+        chatNavBtn = createNavButton("\uD83D\uDCAC", "채팅", "chats");
+
+        side.add(friendNavBtn);
+        side.add(Box.createVerticalStrut(12));
+        side.add(chatNavBtn);
+        side.add(Box.createVerticalStrut(18));
+        side.add(createDotDivider());
+        side.add(Box.createVerticalGlue());
+        side.add(createGhostButton("\u263A", "이모티콘"));
+        side.add(Box.createVerticalStrut(12));
+        side.add(createGhostButton("\u2699", "설정"));
         return side;
     }
 
@@ -61,54 +73,68 @@ public class LobbyFrame extends JFrame implements WindowListener {
         btn.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 20));
         btn.setToolTipText(tooltip);
         btn.setFocusPainted(false);
-        btn.setBackground(new Color(245, 245, 247));
-        btn.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        btn.setOpaque(true);
+        btn.setBackground(BACKGROUND);
+        btn.setBorder(BorderFactory.createEmptyBorder(12, 10, 12, 10));
         btn.addActionListener(e -> {
             cardLayout.show(contentCards, card);
             contentCards.revalidate();
+            updateNavSelection(card);
         });
         return btn;
     }
 
-    private JButton createSettingsButton() {
-        JButton btn = new JButton("⚙");
+    private JPanel createDotDivider() {
+        JPanel dots = new JPanel();
+        dots.setOpaque(false);
+        dots.setLayout(new BoxLayout(dots, BoxLayout.Y_AXIS));
+        for (int i = 0; i < 3; i++) {
+            JLabel dot = new JLabel("\u2022");
+            dot.setForeground(new Color(160, 160, 160));
+            dot.setAlignmentX(Component.CENTER_ALIGNMENT);
+            dots.add(dot);
+            dots.add(Box.createVerticalStrut(6));
+        }
+        return dots;
+    }
+
+    private JButton createGhostButton(String icon, String tooltip) {
+        JButton btn = new JButton(icon);
         btn.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
-        btn.setToolTipText("설정");
+        btn.setToolTipText(tooltip);
         btn.setFocusPainted(false);
-        btn.setBackground(new Color(245, 245, 247));
+        btn.setContentAreaFilled(false);
         btn.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        btn.setForeground(new Color(100, 100, 100));
         return btn;
+    }
+
+    private void updateNavSelection(String card) {
+        Color active = Color.WHITE;
+        Color inactive = BACKGROUND;
+        if (friendNavBtn != null) {
+            friendNavBtn.setBackground("friends".equals(card) ? active : inactive);
+        }
+        if (chatNavBtn != null) {
+            chatNavBtn.setBackground("chats".equals(card) ? active : inactive);
+        }
     }
 
     private JPanel buildMainArea() {
         JPanel main = new JPanel(new BorderLayout());
-        main.setBackground(Color.WHITE);
+        main.setBackground(BACKGROUND);
 
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBorder(BorderFactory.createEmptyBorder(16, 20, 16, 20));
-        header.setBackground(Color.WHITE);
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setOpaque(false);
+        wrapper.setBorder(BorderFactory.createEmptyBorder(12, 8, 12, 12));
 
-        JLabel title = new JLabel("Chat");
-        title.setFont(new Font("맑은 고딕", Font.BOLD, 20));
-        header.add(title, BorderLayout.WEST);
+        JPanel surface = new JPanel(new BorderLayout());
+        surface.setBackground(Color.WHITE);
+        surface.setBorder(BorderFactory.createLineBorder(new Color(230, 230, 230)));
+        surface.add(contentCards, BorderLayout.CENTER);
 
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        actions.setOpaque(false);
-        JButton createChatBtn = new JButton("채팅방 만들기");
-        createChatBtn.setFocusPainted(false);
-        createChatBtn.setBackground(new Color(245, 245, 247));
-        createChatBtn.setBorder(BorderFactory.createLineBorder(new Color(225, 225, 225)));
-        createChatBtn.addActionListener(e -> createChatFrame.setVisible(true));
-        actions.add(createChatBtn);
-        header.add(actions, BorderLayout.EAST);
-
-        main.add(header, BorderLayout.NORTH);
-
-        JPanel cardWrapper = new JPanel(new BorderLayout());
-        cardWrapper.setBorder(BorderFactory.createEmptyBorder(0, 12, 12, 12));
-        cardWrapper.add(contentCards, BorderLayout.CENTER);
-        main.add(cardWrapper, BorderLayout.CENTER);
-
+        wrapper.add(surface, BorderLayout.CENTER);
+        main.add(wrapper, BorderLayout.CENTER);
         return main;
     }
 
@@ -118,7 +144,7 @@ public class LobbyFrame extends JFrame implements WindowListener {
     @Override
     public void windowClosing(WindowEvent e) {
         if (Application.me != null) {
-            Application.sender.sendMessage(new dto.request.LogoutRequest(Application.me.getId()));
+            Application.sender.sendMessage(new LogoutRequest(Application.me.getId()));
             try {
                 Thread.sleep(200);
             } catch (InterruptedException ex) {
