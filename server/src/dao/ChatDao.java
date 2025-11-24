@@ -237,5 +237,73 @@ public class ChatDao {
         }
         return null;
     }
-}
 
+    public String findNicknameByUserId(String userId) {
+        String sql = "SELECT nickname FROM users WHERE user_id = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getString("nickname");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    // 친구 목록 조회
+    public List<User> getFriends(String userId) {
+        List<User> friends = new ArrayList<>();
+        String sql = "SELECT u.user_id, u.nickname FROM Friends f JOIN Users u ON f.friend_id = u.user_id WHERE f.user_id = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                friends.add(new User(rs.getString("user_id"), rs.getString("nickname")));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return friends;
+    }
+
+    public boolean areFriends(String userId, String friendId) {
+        String sql = "SELECT COUNT(*) FROM Friends WHERE user_id = ? AND friend_id = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, userId);
+            pstmt.setString(2, friendId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean addFriendship(String userId, String friendId) {
+        String sql = "INSERT INTO Friends (friendship_id, user_id, friend_id) VALUES (friendship_seq.NEXTVAL, ?, ?)";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, userId);
+            pstmt.setString(2, friendId);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean removeFriendship(String userId, String friendId) {
+        String sql = "DELETE FROM Friends WHERE user_id = ? AND friend_id = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, userId);
+            pstmt.setString(2, friendId);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+}
